@@ -2,23 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ApolloProvider } from '@apollo/client/react/context';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { AppThemeProvider } from './theme/AppThemeProvider';
 import './index.css';
 import App from './App';
 import client from './apolloClient';
 import reportWebVitals from './reportWebVitals';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -26,10 +14,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <ApolloProvider client={client}>
     <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <AppThemeProvider>
         <App />
-      </ThemeProvider>
+      </AppThemeProvider>
     </BrowserRouter>
   </ApolloProvider>
 );
