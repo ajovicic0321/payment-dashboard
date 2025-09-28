@@ -1,32 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, NetworkStatus } from '@apollo/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TablePagination,
-  TextField,
-  MenuItem,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Tooltip,
-  Grid,
-  Skeleton,
-} from '@mui/material';
-import { Visibility, ArrowBack, Refresh } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { Box, Typography, Alert, IconButton } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
 import { GET_CHARGES } from '../graphql/queries';
-import { Charge, PaymentFilters } from '../types';
+import { PaymentFilters } from '../types';
+import { PaymentFilters as PaymentFiltersControls, PaymentsTable } from './payments';
 
 const PaymentsList: React.FC = () => {
   const navigate = useNavigate();
@@ -129,43 +108,17 @@ const PaymentsList: React.FC = () => {
     navigate(`/payments/${paymentId}`);
   };
 
-  const formatCurrency = (amount: number, currency: string = 'EUR') => {
-    return new Intl.NumberFormat('en-EU', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount / 100);
+  const handleClearFilters = () => {
+    setFilters({
+      status: '',
+      dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
+      dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
+    });
+    setSearch('');
+    setDebouncedSearch('');
+    setPage(0);
   };
 
-  const formatDate = (timestamp: number) => {
-    return format(new Date(timestamp * 1000), 'MMM dd, yyyy HH:mm');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toUpperCase()) {
-      case 'SUCCEEDED':
-        return 'success';
-      case 'PENDING':
-        return 'warning';
-      case 'FAILED':
-        return 'error';
-      case 'CANCELED':
-        return 'default';
-      case 'EXPIRED':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
-
-  // Use API enum values for correct filtering
-  const statusOptions = [
-    { value: '', label: 'All Statuses' },
-    { value: 'SUCCEEDED', label: 'Succeeded' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'FAILED', label: 'Failed' },
-    { value: 'CANCELED', label: 'Canceled' },
-    { value: 'EXPIRED', label: 'Expired' },
-  ];
 
   if (error) {
     return (
@@ -186,208 +139,25 @@ const PaymentsList: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Filters
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              select
-              fullWidth
-              label="Status"
-              value={filters.status || ''}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              {statusOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Search (reference or customer)"
-              placeholder="e.g. 1502014 or John Doe"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="From Date"
-              type="date"
-              value={filters.dateFrom ? format(new Date(filters.dateFrom * 1000), 'yyyy-MM-dd') : ''}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : undefined)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="To Date"
-              type="date"
-              value={filters.dateTo ? format(new Date(filters.dateTo * 1000), 'yyyy-MM-dd') : ''}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : undefined)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="contained"
-              onClick={() => {
-                setFilters({
-                  status: '',
-                  dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
-                  dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
-                });
-                setSearch('');
-                setDebouncedSearch('');
-                setPage(0);
-              }}
-              sx={{ height: '56px' }}
-            >
-              Clear Filters
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+      <PaymentFiltersControls
+        filters={filters}
+        search={search}
+        onFilterChange={handleFilterChange}
+        onSearchChange={setSearch}
+        onClearFilters={handleClearFilters}
+      />
 
-      {/* Payments Table */}
-      <Paper>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, pb: 0 }}>
-          <Typography variant="h6">Payment Records</Typography>
-          <IconButton 
-            onClick={() => {
-              refetch();
-            }} 
-            disabled={isLoading}
-            size="small"
-            sx={{ opacity: isLoading ? 0.5 : 1 }}
-            title={isLoading ? 'Refreshing...' : 'Refresh data'}
-          >
-            {isLoading ? (
-              <CircularProgress size={20} />
-            ) : (
-              <Refresh />
-            )}
-          </IconButton>
-        </Box>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Reference</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                // Skeleton loader rows
-                Array.from({ length: rowsPerPage }).map((_, index) => (
-                  <TableRow key={`skeleton-${index}`}>
-                    <TableCell>
-                      <Skeleton variant="text" width="80px" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="text" width="100px" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="rectangular" width="80px" height="24px" sx={{ borderRadius: 1 }} />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="text" width="120px" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="text" width="140px" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="text" width="90px" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton variant="circular" width="32px" height="32px" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : data?.charges?.items?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body2" color="textSecondary">
-                      No payments found
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data?.charges?.items?.map((payment: Charge) => (
-                  <TableRow key={payment.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {payment.id.substring(0, 8)}...
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {formatCurrency(payment.amount, payment.currency)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={payment.status}
-                        color={getStatusColor(payment.status) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {payment.customer?.name || payment.customer?.email || 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatDate(payment.createdAt)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {payment.providerReferenceId || 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="View Details">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewPayment(payment.id)}
-                        >
-                          <Visibility />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={data?.charges?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+      <PaymentsTable
+        data={data?.charges?.items || []}
+        total={data?.charges?.total || 0}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        loading={isLoading}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        onViewPayment={handleViewPayment}
+        onRefresh={() => refetch()}
+      />
     </Box>
   );
 };

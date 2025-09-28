@@ -1,23 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Button,
-  CircularProgress,
-  Alert,
-  Paper,
-  Grid,
-  TextField,
-  Stack,
-} from '@mui/material';
+import { Typography, Box, Button, CircularProgress, Alert, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { GET_CHARGES_DATE_RANGE_KPI } from '../graphql/queries';
 import { ChargesDateRangeKPIResponse } from '../types';
 import { format } from 'date-fns';
+import { DateFilter, KPICards, DailyPaymentVolumeChart, PaymentStatusChart } from './dashboard/index';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -136,12 +124,6 @@ const Dashboard: React.FC = () => {
     };
   }, [kpiData?.chargesDateRangeKPI]);
 
-  const formatCurrency = (amount: number, currency: string = 'EUR') => {
-    return new Intl.NumberFormat('en-EU', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount / 100); // Assuming amount is in cents
-  };
 
   if (kpiError) {
     return (
@@ -166,48 +148,13 @@ const Dashboard: React.FC = () => {
         </Button>
       </Box>
       
-      {/* Date Filter Controls */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', minWidth: 'fit-content' }}>
-          Date Range Filter:
-        </Typography>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <TextField
-            type="date"
-            label="From"
-            size="small"
-            value={dateInputs.from}
-            onChange={(e) => handleDateFilterChange('from', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 140 }}
-          />
-          <TextField
-            type="date"
-            label="To"
-            size="small"
-            value={dateInputs.to}
-            onChange={(e) => handleDateFilterChange('to', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 140 }}
-          />
-          <Button
-            variant="contained"
-            size="small"
-            onClick={applyDateFilter}
-            disabled={kpiLoading}
-          >
-            Apply Filter
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={resetDateFilter}
-            disabled={kpiLoading}
-          >
-            Reset
-          </Button>
-        </Stack>
-      </Paper>
+      <DateFilter
+        dateInputs={dateInputs}
+        onDateChange={handleDateFilterChange}
+        onApply={applyDateFilter}
+        onReset={resetDateFilter}
+        loading={kpiLoading}
+      />
 
       {kpiLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -215,228 +162,25 @@ const Dashboard: React.FC = () => {
         </Box>
       ) : (
         <>
-          {/* KPI Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Amount
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {formatCurrency(kpis.totalAmount, kpis.currency)}
-                  </Typography>
-                  <Typography color="textSecondary">
-                    Last 30 days
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Payments
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {kpis.totalCount}
-                  </Typography>
-                  <Typography color="textSecondary">
-                    Transactions
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Average Amount
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {formatCurrency(kpis.averageAmount, kpis.currency)}
-                  </Typography>
-                  <Typography color="textSecondary">
-                    Per transaction
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Success Rate
-                  </Typography>
-                  <Typography variant="h4" component="div" color="success.main">
-                    {kpis.successRate}%
-                  </Typography>
-                  <Typography color="textSecondary">
-                    Successful payments
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            {kpiData?.chargesDateRangeKPI?.total && (
-              <>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card>
-                    <CardContent>
-                      <Typography color="textSecondary" gutterBottom>
-                        Failed Payments
-                      </Typography>
-                      <Typography variant="h4" component="div" color="error.main">
-                        {kpiData.chargesDateRangeKPI.total.failedCount}
-                      </Typography>
-                      <Typography color="textSecondary">
-                        {formatCurrency(kpiData.chargesDateRangeKPI.total.failedAmount, kpis.currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card>
-                    <CardContent>
-                      <Typography color="textSecondary" gutterBottom>
-                        Canceled Payments
-                      </Typography>
-                      <Typography variant="h4" component="div" color="warning.main">
-                        {kpiData.chargesDateRangeKPI.total.canceledCount}
-                      </Typography>
-                      <Typography color="textSecondary">
-                        {formatCurrency(kpiData.chargesDateRangeKPI.total.canceledAmount, kpis.currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card>
-                    <CardContent>
-                      <Typography color="textSecondary" gutterBottom>
-                        Refunded Amount
-                      </Typography>
-                      <Typography variant="h4" component="div" color="info.main">
-                        {formatCurrency(kpiData.chargesDateRangeKPI.total.refundedAmount, kpis.currency)}
-                      </Typography>
-                      <Typography color="textSecondary">
-                        {kpiData.chargesDateRangeKPI.total.refundedCount} refunds
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </>
-            )}
-          </Grid>
+          <KPICards
+            kpis={kpis}
+            total={kpiData?.chargesDateRangeKPI?.total}
+            currency={kpis.currency}
+          />
 
           {/* Charts */}
           <Grid container spacing={3}>
             <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Daily Payment Volume
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart 
-                    data={chartData}
-                    onClick={(data) => {
-                      if (data && data.activeLabel) {
-                        // Find the data point for the clicked date
-                        const clickedPoint = chartData.find(item => item.date === data.activeLabel);
-                        if (clickedPoint) {
-                          // Use the original timestamp for accurate filtering
-                          const clickedTimestamp = clickedPoint.timestamp;
-                          
-                          // Calculate start and end of the day using the original timestamp
-                          const clickedDate = new Date(clickedTimestamp * 1000);
-                          const dayStart = Math.floor(new Date(clickedDate.getFullYear(), clickedDate.getMonth(), clickedDate.getDate()).getTime() / 1000);
-                          const dayEnd = dayStart + (24 * 60 * 60) - 1; // End of day
-                          
-                          navigate(`/payments?dateFrom=${dayStart}&dateTo=${dayEnd}`);
-                        }
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip 
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <Box sx={{ 
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                              border: '1px solid #ccc', 
-                              borderRadius: '8px', 
-                              p: 2,
-                              boxShadow: 2
-                            }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                {label}
-                              </Typography>
-                              <Typography variant="body2" color="primary">
-                                💰 Total Amount: {formatCurrency(data.totalAmount, kpis.currency)}
-                              </Typography>
-                              <Typography variant="body2" color="success.main">
-                                ✅ Succeeded: {formatCurrency(data.succeededAmount, kpis.currency)} ({data.succeededCount} payments)
-                              </Typography>
-                              <Typography variant="body2" color="warning.main">
-                                ⚠️ Canceled: {formatCurrency(data.canceledAmount, kpis.currency)} ({data.canceledCount} payments)
-                              </Typography>
-                              <Typography variant="body2" color="error.main">
-                                ❌ Failed: {formatCurrency(data.failedAmount, kpis.currency)} ({data.failedCount} payments)
-                              </Typography>
-                              <Typography variant="body2" sx={{ mt: 1, fontWeight: 500 }}>
-                                📊 Total Count: {data.totalCount} payments
-                              </Typography>
-                              <Typography variant="caption" sx={{ mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>
-                                💡 Click to view payments for this day
-                              </Typography>
-                            </Box>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="totalAmount" 
-                      stroke="#1976d2" 
-                      strokeWidth={2} 
-                      name="totalAmount"
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="succeededAmount" 
-                      stroke="#4caf50" 
-                      strokeWidth={2} 
-                      name="succeededAmount"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Paper>
+              <DailyPaymentVolumeChart
+                data={chartData}
+                currency={kpis.currency}
+              />
             </Grid>
             <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Payment Status Distribution
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statusChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="status" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [
-                        name === 'count' ? value : formatCurrency(value),
-                        name === 'count' ? 'Count' : 'Amount'
-                      ]}
-                    />
-                    <Bar dataKey="count" fill="#1976d2" name="count" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
+              <PaymentStatusChart
+                data={statusChartData}
+                currency={kpis.currency}
+              />
             </Grid>
           </Grid>
         </>
