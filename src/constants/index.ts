@@ -1,4 +1,6 @@
 // API Configuration
+// Note: These credentials should normally be stored in environment variables (.env file)
+// but are hardcoded here for the test task demonstration purposes
 export const API_CONFIG = {
   ENDPOINT: 'https://mo-graphql.microapps-staging.com',
   API_KEY: 'pk_test_4a140607778e1217f56ccb8b50540f91',

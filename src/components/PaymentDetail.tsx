@@ -163,13 +163,13 @@ const PaymentDetail: React.FC = () => {
                   {formatDate(payment.updatedAt)}
                 </Typography>
               </Grid>
-              {payment.reference && (
+              {payment.providerReferenceId && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="textSecondary">
                     Reference
                   </Typography>
                   <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                    {payment.reference}
+                    {payment.providerReferenceId}
                   </Typography>
                 </Grid>
               )}
@@ -197,14 +197,6 @@ const PaymentDetail: React.FC = () => {
             
             {payment.customer ? (
               <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Customer ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                    {payment.customer.id}
-                  </Typography>
-                </Grid>
                 {payment.customer.name && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="textSecondary">
@@ -225,6 +217,16 @@ const PaymentDetail: React.FC = () => {
                     </Typography>
                   </Grid>
                 )}
+                {payment.customer.phone && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="textSecondary">
+                      Phone
+                    </Typography>
+                    <Typography variant="body1">
+                      {payment.customer.phone}
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
             ) : (
               <Typography variant="body2" color="textSecondary">
@@ -242,39 +244,43 @@ const PaymentDetail: React.FC = () => {
             
             {payment.paymentMethod ? (
               <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Method ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                    {payment.paymentMethod.id}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Type
-                  </Typography>
-                  <Typography variant="body1">
-                    {payment.paymentMethod.type}
-                  </Typography>
-                </Grid>
-                {payment.paymentMethod.brand && (
+                {payment.paymentMethod.method && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="textSecondary">
+                      Method
+                    </Typography>
+                    <Typography variant="body1">
+                      {payment.paymentMethod.method}
+                    </Typography>
+                  </Grid>
+                )}
+                {payment.paymentMethod.card?.type && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="textSecondary">
+                      Card Type
+                    </Typography>
+                    <Typography variant="body1">
+                      {payment.paymentMethod.card.type}
+                    </Typography>
+                  </Grid>
+                )}
+                {payment.paymentMethod.card?.brand && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="textSecondary">
                       Brand
                     </Typography>
                     <Typography variant="body1">
-                      {payment.paymentMethod.brand}
+                      {payment.paymentMethod.card.brand}
                     </Typography>
                   </Grid>
                 )}
-                {payment.paymentMethod.last4 && (
+                {payment.paymentMethod.card?.last4 && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="textSecondary">
                       Last 4 Digits
                     </Typography>
                     <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                      **** **** **** {payment.paymentMethod.last4}
+                      **** **** **** {payment.paymentMethod.card.last4}
                     </Typography>
                   </Grid>
                 )}
@@ -287,43 +293,7 @@ const PaymentDetail: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Metadata */}
-        {payment.metadata && Object.keys(payment.metadata).length > 0 && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Metadata
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Key</TableCell>
-                      <TableCell>Value</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Object.entries(payment.metadata).map(([key, value]) => (
-                      <TableRow key={key}>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {key}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          </Grid>
-        )}
+        {/* Metadata section removed as it's not available in the API schema */}
       </Grid>
     </Box>
   );

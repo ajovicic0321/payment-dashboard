@@ -37,11 +37,32 @@ const PaymentsList: React.FC = () => {
     dateTo: Math.floor(Date.now() / 1000),
   });
 
+  // Construct filter object for API
+  const constructFilter = () => {
+    const filter: any = {};
+
+    if (filters.status) {
+      filter.status = { eq: filters.status };
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      filter.createdAt = {};
+      if (filters.dateFrom) {
+        filter.createdAt.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        filter.createdAt.lte = filters.dateTo;
+      }
+    }
+
+    return filter;
+  };
+
   const { data, loading, error, refetch } = useQuery(GET_CHARGES, {
     variables: {
-      limit: rowsPerPage,
-      offset: page * rowsPerPage,
-      ...filters,
+      size: rowsPerPage,
+      from: page * rowsPerPage,
+      filter: constructFilter(),
     },
   });
 
@@ -208,7 +229,7 @@ const PaymentsList: React.FC = () => {
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ) : data?.charges?.data?.length === 0 ? (
+              ) : data?.charges?.items?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     <Typography variant="body2" color="textSecondary">
@@ -217,7 +238,7 @@ const PaymentsList: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.charges?.data?.map((payment: Charge) => (
+                data?.charges?.items?.map((payment: Charge) => (
                   <TableRow key={payment.id} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
@@ -248,7 +269,7 @@ const PaymentsList: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {payment.reference || 'N/A'}
+                        {payment.providerReferenceId || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -270,7 +291,7 @@ const PaymentsList: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={data?.charges?.totalCount || 0}
+          count={data?.charges?.total || 0}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

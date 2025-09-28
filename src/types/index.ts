@@ -8,26 +8,26 @@ export interface Charge {
   createdAt: number; // Unix timestamp
   updatedAt: number; // Unix timestamp
   description?: string;
-  reference?: string;
-  metadata?: Record<string, any>;
+  providerReferenceId?: string;
   customer?: {
-    id: string;
     email?: string;
     name?: string;
+    phone?: string;
   };
   paymentMethod?: {
-    id: string;
-    type: string;
-    last4?: string;
-    brand?: string;
+    method?: string;
+    card?: {
+      brand?: string;
+      type?: string;
+      last4?: string;
+    };
   };
 }
 
 export interface ChargesResponse {
   charges: {
-    data: Charge[];
-    hasMore: boolean;
-    totalCount: number;
+    items: Charge[];
+    total: number;
   };
 }
 
@@ -38,8 +38,8 @@ export interface PaymentFilters {
   status?: string;
   dateFrom?: number;
   dateTo?: number;
-  limit?: number;
-  offset?: number;
+  size?: number;
+  from?: number;
 }
 
 export interface KPI {

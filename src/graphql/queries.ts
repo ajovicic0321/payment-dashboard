@@ -1,9 +1,9 @@
 import { gql } from '@apollo/client';
 
 export const GET_CHARGES = gql`
-  query GetCharges($limit: Int, $offset: Int, $status: String, $dateFrom: Int, $dateTo: Int) {
-    charges(limit: $limit, offset: $offset, status: $status, dateFrom: $dateFrom, dateTo: $dateTo) {
-      data {
+  query GetCharges($size: Int, $from: Int, $filter: SearchableChargeFilterInput) {
+    charges(size: $size, from: $from, filter: $filter) {
+      items {
         id
         amount
         currency
@@ -11,22 +11,22 @@ export const GET_CHARGES = gql`
         createdAt
         updatedAt
         description
-        reference
-        metadata
+        providerReferenceId
         customer {
-          id
           email
           name
+          phone
         }
         paymentMethod {
-          id
-          type
-          last4
-          brand
+          method
+          card {
+            brand
+            type
+            last4
+          }
         }
       }
-      hasMore
-      totalCount
+      total
     }
   }
 `;
@@ -41,18 +41,19 @@ export const GET_CHARGE_BY_ID = gql`
       createdAt
       updatedAt
       description
-      reference
-      metadata
+      providerReferenceId
       customer {
-        id
         email
         name
+        phone
       }
       paymentMethod {
-        id
-        type
-        last4
-        brand
+        method
+        card {
+          brand
+          type
+          last4
+        }
       }
     }
   }

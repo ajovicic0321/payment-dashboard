@@ -26,10 +26,14 @@ const Dashboard: React.FC = () => {
 
   const { data: chargesData, loading: chargesLoading, error: chargesError } = useQuery(GET_CHARGES, {
     variables: {
-      limit: 1000, // Get more data for better KPI calculations
-      offset: 0,
-      dateFrom: dateRange.from,
-      dateTo: dateRange.to,
+      size: 1000, // Get more data for better KPI calculations
+      from: 0,
+      filter: {
+        createdAt: {
+          gte: dateRange.from,
+          lte: dateRange.to,
+        },
+      },
     },
   });
 
@@ -49,10 +53,10 @@ const Dashboard: React.FC = () => {
     return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
   };
 
-  const chartData = processChartData(chargesData?.charges?.data || []);
+  const chartData = processChartData(chargesData?.charges?.items || []);
 
   // Process status distribution
-  const statusDistribution = chargesData?.charges?.data?.reduce((acc: { [key: string]: number }, charge: Charge) => {
+  const statusDistribution = chargesData?.charges?.items?.reduce((acc: { [key: string]: number }, charge: Charge) => {
     acc[charge.status] = (acc[charge.status] || 0) + 1;
     return acc;
   }, {}) || {};
@@ -90,7 +94,7 @@ const Dashboard: React.FC = () => {
     };
   };
 
-  const kpis = calculateKPIs(chargesData?.charges?.data || []);
+  const kpis = calculateKPIs(chargesData?.charges?.items || []);
 
   const formatCurrency = (amount: number, currency: string = 'EUR') => {
     return new Intl.NumberFormat('en-EU', {
