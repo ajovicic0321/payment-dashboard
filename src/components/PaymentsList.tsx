@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
+import { useQuery, NetworkStatus } from '@apollo/client';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -21,20 +21,29 @@ import {
   IconButton,
   Tooltip,
   Grid,
+  Skeleton,
 } from '@mui/material';
-import { Visibility, ArrowBack } from '@mui/icons-material';
+import { Visibility, ArrowBack, Refresh } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { GET_CHARGES } from '../graphql/queries';
 import { Charge, PaymentFilters } from '../types';
 
 const PaymentsList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filters, setFilters] = useState<PaymentFilters>({
-    status: '',
-    dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
-    dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
+  
+  // Initialize filters from URL params or defaults
+  const [filters, setFilters] = useState<PaymentFilters>(() => {
+    const urlDateFrom = searchParams.get('dateFrom');
+    const urlDateTo = searchParams.get('dateTo');
+    
+    return {
+      status: '',
+      dateFrom: urlDateFrom ? parseInt(urlDateFrom) : Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000),
+      dateTo: urlDateTo ? parseInt(urlDateTo) : Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000),
+    };
   });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -86,13 +95,18 @@ const PaymentsList: React.FC = () => {
     return filter;
   };
 
-  const { data, loading, error, refetch } = useQuery(GET_CHARGES, {
+  const { data, loading, error, refetch, networkStatus } = useQuery(GET_CHARGES, {
     variables: {
       size: rowsPerPage,
       from: page * rowsPerPage,
       filter: constructFilter(),
     },
+    notifyOnNetworkStatusChange: true, // Enable to detect refetch
   });
+
+  // Check if we're refetching
+  const isRefetching = networkStatus === NetworkStatus.refetch;
+  const isLoading = loading || isRefetching;
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -163,22 +177,13 @@ const PaymentsList: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={() => navigate('/')} sx={{ mr: 1 }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" component="h1">
-            Payments List
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          onClick={() => refetch()}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+        <IconButton onClick={() => navigate('/')} sx={{ mr: 1 }}>
+          <ArrowBack />
+        </IconButton>
+        <Typography variant="h4" component="h1">
+          Payments List
+        </Typography>
       </Box>
 
       {/* Filters */}
@@ -255,6 +260,24 @@ const PaymentsList: React.FC = () => {
 
       {/* Payments Table */}
       <Paper>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, pb: 0 }}>
+          <Typography variant="h6">Payment Records</Typography>
+          <IconButton 
+            onClick={() => {
+              refetch();
+            }} 
+            disabled={isLoading}
+            size="small"
+            sx={{ opacity: isLoading ? 0.5 : 1 }}
+            title={isLoading ? 'Refreshing...' : 'Refresh data'}
+          >
+            {isLoading ? (
+              <CircularProgress size={20} />
+            ) : (
+              <Refresh />
+            )}
+          </IconButton>
+        </Box>
         <TableContainer>
           <Table>
             <TableHead>
@@ -269,12 +292,33 @@ const PaymentsList: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
+              {isLoading ? (
+                // Skeleton loader rows
+                Array.from({ length: rowsPerPage }).map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell>
+                      <Skeleton variant="text" width="80px" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="text" width="100px" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="rectangular" width="80px" height="24px" sx={{ borderRadius: 1 }} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="text" width="120px" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="text" width="140px" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="text" width="90px" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="circular" width="32px" height="32px" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : data?.charges?.items?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
