@@ -59,5 +59,35 @@ export const GET_CHARGE_BY_ID = gql`
   }
 `;
 
-// Note: The chargesDateRangeKPI query is not available in the actual API
-// We'll calculate KPIs from the charges query data instead
+export const GET_CHARGES_DATE_RANGE_KPI = gql`
+  query GetChargesDateRangeKPI($start: Int!, $end: Int!, $interval: Interval, $timezone: String, $currency: Currencies) {
+    chargesDateRangeKPI(start: $start, end: $end, interval: $interval, timezone: $timezone, currency: $currency) {
+      currency
+      total {
+        succeededAmount
+        succeededCount
+        canceledAmount
+        canceledCount
+        failedAmount
+        failedCount
+        capturedAmount
+        capturedCount
+        refundedAmount
+        refundedCount
+      }
+      data {
+        timestamp
+        succeededAmount
+        succeededCount
+        canceledAmount
+        canceledCount
+        failedAmount
+        failedCount
+        capturedAmount
+        capturedCount
+        refundedAmount
+        refundedCount
+      }
+    }
+  }
+`;

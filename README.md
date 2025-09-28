@@ -1,14 +1,15 @@
 # Payment Dashboard
 
-A comprehensive React TypeScript application for displaying payment analytics and managing payment records. This dashboard provides insights into payment data through interactive charts, detailed payment views, and advanced filtering capabilities.
+A comprehensive React TypeScript application designed for the MONEI technical challenge. This dashboard displays payment analytics and manages payment records through interactive charts, detailed payment views, and advanced filtering capabilities using the MONEI GraphQL API.
 
 ## Features
 
 ### 🏠 Analytics Dashboard
-- **Key Performance Indicators (KPIs)**: Total amount, payment count, average amount, and success rate
-- **Interactive Charts**: Daily payment volume trends and status distribution
-- **Real-time Data**: Fetches data from GraphQL API with automatic refresh capabilities
-- **Responsive Design**: Optimized for desktop and mobile viewing
+- **Real KPI Data**: Uses `chargesDateRangeKPI` GraphQL query for accurate aggregated metrics
+- **Comprehensive KPIs**: Total amount, payment count, average amount, success rate, failed payments, canceled payments, and refunds
+- **Interactive Charts**: Daily payment volume trends with multiple data series and status distribution
+- **Real-time Data**: Fetches data from MONEI GraphQL API with automatic refresh capabilities
+- **Responsive Design**: Material-UI components optimized for desktop and mobile viewing
 
 ### 📋 Payments List View
 - **Paginated Table**: Efficiently displays large datasets with customizable page sizes
@@ -90,9 +91,17 @@ The application connects to the GraphQL API at:
 
 ### Available Queries
 
-1. **`chargesDateRangeKPI`**: Fetches aggregated payment metrics for analytics
+1. **`chargesDateRangeKPI`**: Fetches aggregated payment metrics for analytics dashboard
+   - Returns total KPIs (succeeded, failed, canceled, captured, refunded amounts and counts)
+   - Provides time-series data for charts and trends
+   - Supports date range filtering with start/end timestamps
+
 2. **`charges`**: Retrieves paginated list of payment records
-3. **`charge`**: Gets detailed information for a specific payment
+   - Uses `size`/`from` parameters for pagination
+   - Supports advanced filtering with `SearchableChargeFilterInput`
+   - Returns items array and total count
+
+3. **`charge`**: Gets detailed information for a specific payment by ID
 
 ## Usage
 
@@ -131,11 +140,17 @@ The application connects to the GraphQL API at:
 
 ## Assumptions Made
 
-1. **Currency Formatting**: All amounts are assumed to be in cents and converted to euros for display
-2. **Date Handling**: Unix timestamps are converted to human-readable formats
-3. **API Schema**: GraphQL schema structure inferred from requirements
-4. **Error States**: Graceful degradation when API data is unavailable
-5. **Authentication**: API key authentication as specified in requirements
+1. **Currency Formatting**: All amounts are in cents and converted to currency format for display
+2. **Date Handling**: Unix timestamps are converted to human-readable formats using date-fns
+3. **API Schema**: GraphQL schema discovered through introspection and tested queries
+4. **Error States**: Graceful degradation when API data is unavailable with user-friendly error messages
+5. **Authentication**: API key authentication sent in Authorization header as required
+6. **Data Aggregation**: Primary analytics use `chargesDateRangeKPI` for accurate server-side aggregation
+7. **Pagination**: Server-side pagination using `size`/`from` parameters for optimal performance
+8. **Filtering**: Complex filters use nested objects as per `SearchableChargeFilterInput` schema
+9. **Time Zones**: Default to system timezone for date displays
+10. **API Reliability**: The staging API is stable and available for development/testing
+11. **Test Data Date Range**: The MONEI staging API contains test data with future timestamps (2025), so date filters use a wider range (±1 year) to include all available data
 
 ## Development
 
@@ -160,24 +175,38 @@ The application connects to the GraphQL API at:
 
 2. **Deploy the `build` folder** to your preferred hosting service (Netlify, Vercel, AWS S3, etc.)
 
+## Business Requirements Compliance
+
+✅ **Private Dashboard**: Static page with hardcoded API keys (no authentication required)  
+✅ **Analytics Dashboard**: Uses `chargesDateRangeKPI` for aggregated metrics display  
+✅ **KPI Display**: Shows total payments, amounts, success rates, and additional metrics  
+✅ **Visual Analytics**: Interactive charts with Recharts library  
+✅ **Payments List View**: Paginated table using `charges` query  
+✅ **Advanced Filtering**: Date range, status, and other payment attributes  
+✅ **Payment Details**: Detailed view with routing to single payment page  
+✅ **Loading States**: Comprehensive loading and error handling  
+✅ **GraphQL Integration**: Apollo Client with proper query structure  
+✅ **TypeScript**: Full type safety throughout the application  
+✅ **Responsive Design**: Material-UI components for all screen sizes  
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **API Connection Errors**
-   - Verify the API endpoint is accessible
-   - Check API key authentication
-   - Ensure network connectivity
+   - Verify the MONEI API endpoint is accessible: `https://mo-graphql.microapps-staging.com`
+   - Check API key is correct: `pk_test_4a140607778e1217f56ccb8b50540f91`
+   - Ensure network connectivity and CORS is handled properly
 
-2. **Build Errors**
-   - Clear node_modules and reinstall dependencies
-   - Check TypeScript configuration
-   - Verify all imports are correct
+2. **GraphQL Query Errors**
+   - Check browser console for detailed GraphQL validation errors
+   - Verify query structure matches the actual API schema
+   - Use Apollo Studio Sandbox for query testing: studio.apollographql.com
 
-3. **Runtime Errors**
-   - Check browser console for detailed error messages
-   - Verify GraphQL query syntax
-   - Ensure all required environment variables are set
+3. **Build Errors**
+   - Clear node_modules and reinstall dependencies: `rm -rf node_modules && npm install`
+   - Check TypeScript configuration and all imports are correct
+   - Ensure all required dependencies are installed
 
 ## Future Enhancements
 

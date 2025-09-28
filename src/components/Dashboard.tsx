@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import {
   Card,
@@ -13,20 +13,35 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { GET_CHARGES } from '../graphql/queries';
-import { Charge } from '../types';
+import { GET_CHARGES, GET_CHARGES_DATE_RANGE_KPI } from '../graphql/queries';
+import { Charge, ChargesDateRangeKPIResponse } from '../types';
 import { format } from 'date-fns';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const dateRange = {
-    from: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000), // 30 days ago
-    to: Math.floor(Date.now() / 1000), // now
-  };
+  
+  // Memoize date range to prevent unnecessary re-renders
+  // Note: Using a wider date range to include the test data which is in future dates (2025)
+  const dateRange = useMemo(() => ({
+    from: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
+    to: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
+  }), []);
 
+  // Fetch KPI data with optimized options
+  const { data: kpiData, loading: kpiLoading, error: kpiError } = useQuery<ChargesDateRangeKPIResponse>(GET_CHARGES_DATE_RANGE_KPI, {
+    variables: {
+      start: dateRange.from,
+      end: dateRange.to,
+    },
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false,
+    fetchPolicy: 'cache-first', // Use cache if available
+  });
+
+  // Only fetch charges data for list preview - we mainly use KPI data for analytics
   const { data: chargesData, loading: chargesLoading, error: chargesError } = useQuery(GET_CHARGES, {
     variables: {
-      size: 1000, // Get more data for better KPI calculations
+      size: 10, // Minimal data for list preview
       from: 0,
       filter: {
         createdAt: {
@@ -35,40 +50,44 @@ const Dashboard: React.FC = () => {
         },
       },
     },
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false,
+    fetchPolicy: 'cache-first', // Use cache if available
   });
 
-  // Process data for charts
-  const processChartData = (charges: Charge[]) => {
-    const dailyData: { [key: string]: { date: string; amount: number; count: number } } = {};
+  // Memoize chart data processing to prevent unnecessary recalculations
+  const chartData = useMemo(() => {
+    if (!kpiData?.chargesDateRangeKPI?.data) return [];
     
-    charges?.forEach((charge) => {
-      const date = format(new Date(charge.createdAt * 1000), 'yyyy-MM-dd');
-      if (!dailyData[date]) {
-        dailyData[date] = { date, amount: 0, count: 0 };
-      }
-      dailyData[date].amount += charge.amount;
-      dailyData[date].count += 1;
-    });
+    return kpiData.chargesDateRangeKPI.data.map(item => ({
+      date: format(new Date(item.timestamp * 1000), 'MMM dd'),
+      succeededAmount: item.succeededAmount,
+      succeededCount: item.succeededCount,
+      canceledAmount: item.canceledAmount,
+      canceledCount: item.canceledCount,
+      failedAmount: item.failedAmount,
+      failedCount: item.failedCount,
+      totalAmount: item.succeededAmount + item.canceledAmount + item.failedAmount,
+      totalCount: item.succeededCount + item.canceledCount + item.failedCount,
+    }));
+  }, [kpiData?.chargesDateRangeKPI?.data]);
 
-    return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
-  };
+  // Memoize status distribution processing
+  const statusChartData = useMemo(() => {
+    if (!kpiData?.chargesDateRangeKPI?.total) return [];
+    
+    const total = kpiData.chargesDateRangeKPI.total;
+    return [
+      { status: 'Succeeded', count: total.succeededCount, amount: total.succeededAmount },
+      { status: 'Canceled', count: total.canceledCount, amount: total.canceledAmount },
+      { status: 'Failed', count: total.failedCount, amount: total.failedAmount },
+      { status: 'Captured', count: total.capturedCount, amount: total.capturedAmount },
+    ].filter(item => item.count > 0);
+  }, [kpiData?.chargesDateRangeKPI?.total]);
 
-  const chartData = processChartData(chargesData?.charges?.items || []);
-
-  // Process status distribution
-  const statusDistribution = chargesData?.charges?.items?.reduce((acc: { [key: string]: number }, charge: Charge) => {
-    acc[charge.status] = (acc[charge.status] || 0) + 1;
-    return acc;
-  }, {}) || {};
-
-  const statusChartData = Object.entries(statusDistribution).map(([status, count]) => ({
-    status,
-    count,
-  }));
-
-  // Calculate KPIs from charges data
-  const calculateKPIs = (charges: Charge[]) => {
-    if (!charges || charges.length === 0) {
+  // Memoize KPI calculations
+  const kpis = useMemo(() => {
+    if (!kpiData?.chargesDateRangeKPI?.total) {
       return {
         totalAmount: 0,
         totalCount: 0,
@@ -78,12 +97,12 @@ const Dashboard: React.FC = () => {
       };
     }
 
-    const totalAmount = charges.reduce((sum, charge) => sum + charge.amount, 0);
-    const totalCount = charges.length;
-    const averageAmount = totalAmount / totalCount;
-    const currency = charges[0]?.currency || 'EUR';
-    const succeededCount = charges.filter(charge => charge.status === 'succeeded').length;
-    const successRate = Math.round((succeededCount / totalCount) * 100);
+    const total = kpiData.chargesDateRangeKPI.total;
+    const totalAmount = total.succeededAmount + total.canceledAmount + total.failedAmount + total.capturedAmount;
+    const totalCount = total.succeededCount + total.canceledCount + total.failedCount + total.capturedCount;
+    const averageAmount = totalCount > 0 ? totalAmount / totalCount : 0;
+    const currency = kpiData.chargesDateRangeKPI.currency || 'EUR';
+    const successRate = totalCount > 0 ? Math.round((total.succeededCount / totalCount) * 100) : 0;
 
     return {
       totalAmount,
@@ -92,9 +111,7 @@ const Dashboard: React.FC = () => {
       currency,
       successRate,
     };
-  };
-
-  const kpis = calculateKPIs(chargesData?.charges?.items || []);
+  }, [kpiData?.chargesDateRangeKPI]);
 
   const formatCurrency = (amount: number, currency: string = 'EUR') => {
     return new Intl.NumberFormat('en-EU', {
@@ -103,10 +120,10 @@ const Dashboard: React.FC = () => {
     }).format(amount / 100); // Assuming amount is in cents
   };
 
-  if (chargesError) {
+  if (kpiError || chargesError) {
     return (
       <Alert severity="error" sx={{ mb: 2 }}>
-        Error loading dashboard data: {chargesError.message}
+        Error loading dashboard data: {kpiError?.message || chargesError?.message}
       </Alert>
     );
   }
@@ -126,7 +143,7 @@ const Dashboard: React.FC = () => {
         </Button>
       </Box>
 
-      {chargesLoading ? (
+      {kpiLoading || chargesLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
         </Box>
@@ -185,7 +202,7 @@ const Dashboard: React.FC = () => {
                   <Typography color="textSecondary" gutterBottom>
                     Success Rate
                   </Typography>
-                  <Typography variant="h4" component="div">
+                  <Typography variant="h4" component="div" color="success.main">
                     {kpis.successRate}%
                   </Typography>
                   <Typography color="textSecondary">
@@ -194,6 +211,55 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
+            {kpiData?.chargesDateRangeKPI?.total && (
+              <>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Failed Payments
+                      </Typography>
+                      <Typography variant="h4" component="div" color="error.main">
+                        {kpiData.chargesDateRangeKPI.total.failedCount}
+                      </Typography>
+                      <Typography color="textSecondary">
+                        {formatCurrency(kpiData.chargesDateRangeKPI.total.failedAmount, kpis.currency)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Canceled Payments
+                      </Typography>
+                      <Typography variant="h4" component="div" color="warning.main">
+                        {kpiData.chargesDateRangeKPI.total.canceledCount}
+                      </Typography>
+                      <Typography color="textSecondary">
+                        {formatCurrency(kpiData.chargesDateRangeKPI.total.canceledAmount, kpis.currency)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Refunded Amount
+                      </Typography>
+                      <Typography variant="h4" component="div" color="info.main">
+                        {formatCurrency(kpiData.chargesDateRangeKPI.total.refundedAmount, kpis.currency)}
+                      </Typography>
+                      <Typography color="textSecondary">
+                        {kpiData.chargesDateRangeKPI.total.refundedCount} refunds
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </>
+            )}
           </Grid>
 
           {/* Charts */}
@@ -210,11 +276,12 @@ const Dashboard: React.FC = () => {
                     <YAxis />
                     <Tooltip 
                       formatter={(value: number, name: string) => [
-                        name === 'amount' ? formatCurrency(value) : value,
-                        name === 'amount' ? 'Amount' : 'Count'
+                        name === 'totalAmount' ? formatCurrency(value) : value,
+                        name === 'totalAmount' ? 'Total Amount' : 'Total Count'
                       ]}
                     />
-                    <Line type="monotone" dataKey="amount" stroke="#1976d2" strokeWidth={2} />
+                    <Line type="monotone" dataKey="totalAmount" stroke="#1976d2" strokeWidth={2} name="totalAmount" />
+                    <Line type="monotone" dataKey="succeededAmount" stroke="#4caf50" strokeWidth={2} name="succeededAmount" />
                   </LineChart>
                 </ResponsiveContainer>
               </Paper>
@@ -229,8 +296,13 @@ const Dashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="status" />
                     <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#1976d2" />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        name === 'count' ? value : formatCurrency(value),
+                        name === 'count' ? 'Count' : 'Amount'
+                      ]}
+                    />
+                    <Bar dataKey="count" fill="#1976d2" name="count" />
                   </BarChart>
                 </ResponsiveContainer>
               </Paper>

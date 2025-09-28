@@ -31,8 +31,40 @@ export interface ChargesResponse {
   };
 }
 
-// Note: ChargesDateRangeKPI interface removed since the query doesn't exist in the actual API
-// KPIs will be calculated client-side from charges data
+export interface ChargesDateRangeKPIRow {
+  timestamp: number;
+  succeededAmount: number;
+  succeededCount: number;
+  canceledAmount: number;
+  canceledCount: number;
+  failedAmount: number;
+  failedCount: number;
+  capturedAmount: number;
+  capturedCount: number;
+  refundedAmount: number;
+  refundedCount: number;
+}
+
+export interface ChargesDateRangeKPITotal {
+  succeededAmount: number;
+  succeededCount: number;
+  canceledAmount: number;
+  canceledCount: number;
+  failedAmount: number;
+  failedCount: number;
+  capturedAmount: number;
+  capturedCount: number;
+  refundedAmount: number;
+  refundedCount: number;
+}
+
+export interface ChargesDateRangeKPIResponse {
+  chargesDateRangeKPI: {
+    currency: string;
+    total: ChargesDateRangeKPITotal;
+    data: ChargesDateRangeKPIRow[];
+  };
+}
 
 export interface PaymentFilters {
   status?: string;

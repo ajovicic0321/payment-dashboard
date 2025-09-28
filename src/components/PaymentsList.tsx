@@ -33,8 +33,8 @@ const PaymentsList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filters, setFilters] = useState<PaymentFilters>({
     status: '',
-    dateFrom: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000),
-    dateTo: Math.floor(Date.now() / 1000),
+    dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
+    dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
   });
 
   // Construct filter object for API
@@ -194,8 +194,8 @@ const PaymentsList: React.FC = () => {
               onClick={() => {
                 setFilters({
                   status: '',
-                  dateFrom: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000),
-                  dateTo: Math.floor(Date.now() / 1000),
+                  dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
+                  dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
                 });
                 setPage(0);
               }}
