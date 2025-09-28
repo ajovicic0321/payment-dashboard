@@ -99,24 +99,30 @@ const PaymentsList: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'succeeded':
+    switch (status.toUpperCase()) {
+      case 'SUCCEEDED':
         return 'success';
-      case 'pending':
+      case 'PENDING':
         return 'warning';
-      case 'failed':
+      case 'FAILED':
         return 'error';
+      case 'CANCELED':
+        return 'default';
+      case 'EXPIRED':
+        return 'default';
       default:
         return 'default';
     }
   };
 
+  // Use API enum values for correct filtering
   const statusOptions = [
     { value: '', label: 'All Statuses' },
-    { value: 'succeeded', label: 'Succeeded' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'failed', label: 'Failed' },
-    { value: 'canceled', label: 'Canceled' },
+    { value: 'SUCCEEDED', label: 'Succeeded' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'FAILED', label: 'Failed' },
+    { value: 'CANCELED', label: 'Canceled' },
+    { value: 'EXPIRED', label: 'Expired' },
   ];
 
   if (error) {
