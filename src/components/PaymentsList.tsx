@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -36,6 +36,19 @@ const PaymentsList: React.FC = () => {
     dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
     dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
   });
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input (500ms) and use trimmed value
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 500);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Reset to first page whenever the debounced search changes
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch]);
 
   // Construct filter object for API
   const constructFilter = () => {
@@ -53,6 +66,21 @@ const PaymentsList: React.FC = () => {
       if (filters.dateTo) {
         filter.createdAt.lte = filters.dateTo;
       }
+    }
+
+    // Apply inclusive search on provider reference, customer name, and email
+    // Use a combination of match and wildcard to cover contains scenarios
+    if (debouncedSearch) {
+      const term = debouncedSearch.replace(/\s+/g, ' ').trim();
+      const wild = `*${term}*`;
+      filter.or = [
+        { providerReferenceId: { match: term } },
+        { providerReferenceId: { wildcard: wild } },
+        { customerName: { matchPhrasePrefix: term } },
+        { customerName: { wildcard: wild } },
+        { customerEmail: { match: term } },
+        { customerEmail: { wildcard: wild } },
+      ];
     }
 
     return filter;
@@ -177,6 +205,16 @@ const PaymentsList: React.FC = () => {
           <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
+              label="Search (reference or customer)"
+              placeholder="e.g. 1502014 or John Doe"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
               label="From Date"
               type="date"
               value={filters.dateFrom ? format(new Date(filters.dateFrom * 1000), 'yyyy-MM-dd') : ''}
@@ -203,6 +241,8 @@ const PaymentsList: React.FC = () => {
                   dateFrom: Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year ago
                   dateTo: Math.floor((Date.now() + 365 * 24 * 60 * 60 * 1000) / 1000), // 1 year in future
                 });
+                setSearch('');
+                setDebouncedSearch('');
                 setPage(0);
               }}
               sx={{ height: '56px' }}
