@@ -47,40 +47,57 @@ A comprehensive React TypeScript application designed for the MONEI technical ch
 
 ## Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd payment-dashboard
-   ```
-
-2. **Install dependencies**
+1. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. **Start the development server**
+2. **Start the development server**
    ```bash
    npm start
    ```
 
-4. **Open your browser**
+3. **Open your browser**
    Navigate to `http://localhost:3000` to view the application.
 
 ## Project Structure
 
 ```
 src/
-├── components/           # React components
-│   ├── Dashboard.tsx    # Analytics dashboard with KPIs and charts
-│   ├── PaymentsList.tsx # Paginated payments list with filters
-│   └── PaymentDetail.tsx # Detailed payment view
-├── graphql/             # GraphQL queries and mutations
-│   └── queries.ts       # API queries for charges and KPIs
-├── types/               # TypeScript type definitions
-│   └── index.ts         # Interface definitions for API responses
-├── apolloClient.ts      # Apollo Client configuration
-├── App.tsx             # Main application component with routing
-└── index.tsx           # Application entry point
+├── components/              # React components
+│   ├── dashboard/          # Dashboard-specific components
+│   │   ├── DateFilter.tsx        # Date range filter controls
+│   │   ├── KPICards.tsx          # Key performance indicator cards
+│   │   ├── DailyPaymentVolumeChart.tsx  # Interactive line chart
+│   │   ├── PaymentStatusChart.tsx       # Bar chart for status distribution
+│   │   └── index.ts              # Component exports
+│   ├── payments/           # Payments list components
+│   │   ├── PaymentFilters.tsx    # Filter controls for payments
+│   │   ├── PaymentsTable.tsx     # Paginated payments table
+│   │   └── index.ts              # Component exports
+│   ├── payment-detail/     # Payment detail components
+│   │   ├── PaymentInfo.tsx       # Main payment information
+│   │   ├── CustomerInfo.tsx      # Customer details section
+│   │   ├── PaymentMethodInfo.tsx # Payment method details
+│   │   └── index.ts              # Component exports
+│   ├── Dashboard.tsx       # Main analytics dashboard
+│   ├── PaymentsList.tsx    # Main payments list view
+│   ├── PaymentDetail.tsx   # Main payment detail view
+│   ├── Layout.tsx          # App layout with navigation
+│   └── ErrorBoundary.tsx   # Error handling component
+├── theme/                  # Theme configuration
+│   └── AppThemeProvider.tsx     # Material-UI theme provider
+├── utils/                  # Utility functions
+│   └── formatters.ts            # Currency, date, and status formatters
+├── constants/              # Application constants
+│   └── index.ts                 # API config and app constants
+├── graphql/                # GraphQL queries
+│   └── queries.ts               # API queries for charges and KPIs
+├── types/                  # TypeScript type definitions
+│   └── index.ts                 # Interface definitions for API responses
+├── apolloClient.ts         # Apollo Client configuration
+├── App.tsx                 # Main application component with routing
+└── index.tsx               # Application entry point
 ```
 
 ## API Configuration
