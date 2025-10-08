@@ -1,9 +1,9 @@
 // API Configuration
-// Note: These credentials should normally be stored in environment variables (.env file)
-// but are hardcoded here for the test task demonstration purposes
+// Environment variables are loaded from .env file
+// Create a .env file in the root directory with your API credentials
 export const API_CONFIG = {
-  ENDPOINT: 'https://mo-graphql.microapps-staging.com',
-  API_KEY: 'pk_test_4a140607778e1217f56ccb8b50540f91',
+  ENDPOINT: process.env.REACT_APP_API_ENDPOINT || 'https://mo-graphql.microapps-staging.com',
+  API_KEY: process.env.REACT_APP_API_KEY || '',
 } as const;
 
 // Default date ranges (in seconds)

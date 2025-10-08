@@ -100,11 +100,35 @@ src/
 └── index.tsx               # Application entry point
 ```
 
-## API Configuration
+## Environment Setup
 
-The application connects to the GraphQL API at:
-- **Endpoint**: `https://mo-graphql.microapps-staging.com`
-- **Authentication**: API Key `pk_test_4a140607778e1217f56ccb8b50540f91`
+### 1. Create Environment File
+
+#### Option A: Use the Setup Script (Recommended)
+Run the interactive setup script:
+```
+bash ./setup-env.sh
+```
+
+#### Option B: Manual Setup
+Create a `.env` file in the root directory of the project with your API credentials:
+
+```bash
+# API Configuration
+REACT_APP_API_ENDPOINT=https://mo-graphql.microapps-staging.com
+REACT_APP_API_KEY=your_api_key_here
+```
+
+**Important Security Notes:**
+- The `.env` file is already included in `.gitignore` to prevent committing sensitive data
+- Never commit your actual API keys to version control
+- Replace `your_api_key_here` with your actual API key
+
+### 2. API Configuration
+
+The application connects to the GraphQL API using environment variables:
+- **Endpoint**: Set via `REACT_APP_API_ENDPOINT` (defaults to `https://mo-graphql.microapps-staging.com`)
+- **Authentication**: API Key set via `REACT_APP_API_KEY`
 
 ### Available Queries
 
@@ -194,7 +218,7 @@ The application connects to the GraphQL API at:
 
 ## Business Requirements Compliance
 
-✅ **Private Dashboard**: Static page with hardcoded API keys (no authentication required)  
+✅ **Private Dashboard**: Static page with environment variable-based API configuration (no authentication required)  
 ✅ **Analytics Dashboard**: Uses `chargesDateRangeKPI` for aggregated metrics display  
 ✅ **KPI Display**: Shows total payments, amounts, success rates, and additional metrics  
 ✅ **Visual Analytics**: Interactive charts with Recharts library  
@@ -212,7 +236,8 @@ The application connects to the GraphQL API at:
 
 1. **API Connection Errors**
    - Verify the MONEI API endpoint is accessible: `https://mo-graphql.microapps-staging.com`
-   - Check API key is correct: `pk_test_4a140607778e1217f56ccb8b50540f91`
+   - Check that your `.env` file exists and contains the correct `REACT_APP_API_KEY`
+   - Ensure the API key is valid and has proper permissions
    - Ensure network connectivity and CORS is handled properly
 
 2. **GraphQL Query Errors**
